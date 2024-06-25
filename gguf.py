@@ -36,13 +36,28 @@ GGML_ELEMENTS_PER_BLOCK = {
     "Q6_K": 256,
 }
 
+# DATA_TYPES = {
+#     "uint32": 4,
+#     "int32": 5,
+#     "float32": 6,
+#     "string": 8,
+#     "array": 9,
+#     "uint64": 10,
+# }
 DATA_TYPES = {
+    "uint8": 0,
+    "int8": 1,
+    "uint16": 2,
+    "int16": 3,
     "uint32": 4,
     "int32": 5,
     "float32": 6,
+    "bool": 7,
     "string": 8,
     "array": 9,
     "uint64": 10,
+    "int64": 11,
+    "float64": 12,
 }
 
 def read_value(f, data_type):
@@ -50,11 +65,23 @@ def read_value(f, data_type):
         length = struct.unpack("<Q", f.read(8))[0]
         return f.read(length).decode("utf-8")
 
+    elif data_type == DATA_TYPES["bool"]:
+        return bool(struct.unpack("<?", f.read(1))[0])
+
+    elif data_type == DATA_TYPES["uint8"]:
+        return struct.unpack("<B", f.read(1))[0]
+
+    elif data_type == DATA_TYPES["int8"]:
+        return struct.unpack("<b", f.read(1))[0]
+
+    elif data_type == DATA_TYPES["uint16"]:
+        return struct.unpack("<H", f.read(2))[0]
+
+    elif data_type == DATA_TYPES["int16"]:
+        return struct.unpack("<h", f.read(2))[0]
+
     elif data_type == DATA_TYPES["uint32"]:
         return struct.unpack("<I", f.read(4))[0]
-
-    elif data_type == DATA_TYPES["uint64"]:
-        return struct.unpack("<Q", f.read(8))[0]
 
     elif data_type == DATA_TYPES["int32"]:
         return struct.unpack("<i", f.read(4))[0]
@@ -62,12 +89,44 @@ def read_value(f, data_type):
     elif data_type == DATA_TYPES["float32"]:
         return struct.unpack("<f", f.read(4))[0]
 
+    elif data_type == DATA_TYPES["uint64"]:
+        return struct.unpack("<Q", f.read(8))[0]
+
+    elif data_type == DATA_TYPES["int64"]:
+        return struct.unpack("<q", f.read(8))[0]
+
+    elif data_type == DATA_TYPES["float64"]:
+        return struct.unpack("<d", f.read(8))[0]
+
     elif data_type == DATA_TYPES["array"]:
-        data_type, count = struct.unpack("<IQ", f.read(4 + 8))
-        return [read_value(f, data_type) for _ in range(count)]
+        elem_type, count = struct.unpack("<IQ", f.read(4 + 8))
+        return [read_value(f, elem_type) for _ in range(count)]
 
     else:
         raise NotImplementedError(f"Data type {data_type} not implemented")
+# def read_value(f, data_type):
+#     if data_type == DATA_TYPES["string"]:
+#         length = struct.unpack("<Q", f.read(8))[0]
+#         return f.read(length).decode("utf-8")
+
+#     elif data_type == DATA_TYPES["uint32"]:
+#         return struct.unpack("<I", f.read(4))[0]
+
+#     elif data_type == DATA_TYPES["uint64"]:
+#         return struct.unpack("<Q", f.read(8))[0]
+
+#     elif data_type == DATA_TYPES["int32"]:
+#         return struct.unpack("<i", f.read(4))[0]
+
+#     elif data_type == DATA_TYPES["float32"]:
+#         return struct.unpack("<f", f.read(4))[0]
+
+#     elif data_type == DATA_TYPES["array"]:
+#         data_type, count = struct.unpack("<IQ", f.read(4 + 8))
+#         return [read_value(f, data_type) for _ in range(count)]
+
+#     else:
+#         raise NotImplementedError(f"Data type {data_type} not implemented")
 
 def load_gguf(f):
     f.seek(0)
